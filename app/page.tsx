@@ -1,69 +1,129 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useMemo } from "react";
+import Sidebar from "@/src/components/Sidebar";
+import Header from "@/src/components/Header";
+import SearchHero from "@/src/components/SearchHero";
+import MacroCard from "@/src/components/MacroCard";
+import Button from "@/src/components/ui/Button";
+import { categories, initialMacros, Macro } from "@/src/data/macros";
+import { SearchX } from "lucide-react";
 
 export default function Home() {
+  const [macros, setMacros] = useState<Macro[]>(initialMacros);
+  const [selectedCategory, setSelectedCategory] = useState<string>("todas");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      todas: macros.length,
+    };
+    categories.forEach((cat) => {
+      if (cat.id !== "todas") {
+        counts[cat.id] = macros.filter((m) => m.category === cat.id).length;
+      }
+    });
+    return counts;
+  }, [macros]);
+
+  const filteredMacros = useMemo(() => {
+    return macros.filter((macro) => {
+      const matchesCategory =
+        selectedCategory === "todas" || macro.category === selectedCategory;
+
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        query === "" ||
+        macro.title.toLowerCase().includes(query) ||
+        macro.text.toLowerCase().includes(query) ||
+        macro.categoryLabel.toLowerCase().includes(query);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [macros, selectedCategory, searchQuery]);
+
+  const handleToggleFavorite = (macroId: string) => {
+    setMacros((prev) =>
+      prev.map((m) =>
+        m.id === macroId ? { ...m, isFavorite: !m.isFavorite } : m
+      )
+    );
+  };
+
+  const handleNewMacro = () => {
+    alert("Próximamente: Modal para crear nueva macro.");
+  };
+
+  const handleOpenRecent = () => {
+    alert("Próximamente: Historial de macros recientes.");
+  };
+
+  const handleEdit = (macro: Macro) => {
+    alert(`Próximamente: Editar macro "${macro.title}"`);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex min-h-screen bg-[#faf8f3] text-[#172033]">
+      <Sidebar
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        categoryCounts={categoryCounts}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          onNewMacro={handleNewMacro}
+          onOpenRecent={handleOpenRecent}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        <main className="flex-1 p-8 max-w-7xl w-full mx-auto">
+          <SearchHero
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            totalCount={macros.length}
+            filteredCount={filteredMacros.length}
+          />
+
+          {filteredMacros.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredMacros.map((macro) => (
+                <MacroCard
+                  key={macro.id}
+                  macro={macro}
+                  onToggleFavorite={handleToggleFavorite}
+                  onEdit={handleEdit}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white border border-[#e9e5de] rounded-2xl p-12 text-center my-8 shadow-2xs">
+              <div className="w-12 h-12 rounded-full bg-[#fff0e9] text-[#ff5722] flex items-center justify-center mx-auto mb-4">
+                <SearchX className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-[#172033] mb-1">
+                No se encontraron macros
+              </h3>
+              <p className="text-xs text-[#697386] max-w-sm mx-auto mb-5">
+                No hay resultados para &quot;{searchQuery}&quot; en la categoría seleccionada. Intenta con otra palabra o limpiá el filtro.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("todas");
+                }}
+              >
+                Limpiar búsqueda y filtros
+              </Button>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
